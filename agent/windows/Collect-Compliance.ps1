@@ -15,15 +15,15 @@ function Get-Check {
 $checks = @(
     Get-Check 'firewall' {
         $r = [ordered]@{}
-        foreach ($p in Get-NetFirewallProfile) { $r[$p.Name.ToLower()] = ($p.Enabled -eq 'True') }
+        foreach ($p in Get-NetFirewallProfile -ErrorAction Stop) { $r[$p.Name.ToLower()] = ($p.Enabled -eq 'True') }
         $r
     }
     Get-Check 'diskEncryption' {
-        $v = Get-BitLockerVolume -MountPoint $env:SystemDrive
+        $v = Get-BitLockerVolume -ErrorAction Stop -MountPoint $env:SystemDrive
         [ordered]@{ protectionStatus = "$($v.ProtectionStatus)"; volumeStatus = "$($v.VolumeStatus)" }
     }
     Get-Check 'defender' {
-        $s = Get-MpComputerStatus
+        $s = Get-MpComputerStatus -ErrorAction Stop
         [ordered]@{
             realTimeProtection = $s.RealTimeProtectionEnabled
             antivirusEnabled   = $s.AntivirusEnabled
@@ -39,7 +39,7 @@ $checks = @(
         }
     }
     Get-Check 'localAdmins' {
-        $m = @(Get-LocalGroupMember -Group 'Administrators' | ForEach-Object { $_.Name })
+        $m = @(Get-LocalGroupMember -ErrorAction Stop -Group 'Administrators' | ForEach-Object { $_.Name })
         [ordered]@{ count = $m.Count; members = $m }
     }
     Get-Check 'screenLock' {

@@ -46,7 +46,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: plan.id
     httpsOnly: true
     siteConfig: {
-      powerShellVersion: '7.4'
+      powerShellVersion: '7.6'
       minTlsVersion: '1.2'
       ftpsState: 'Disabled'
       appSettings: [
@@ -55,6 +55,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'WEBSITE_CONTENTSHARE', value: toLower(functionAppName) }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'powershell' }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
       ]
     }
   }
