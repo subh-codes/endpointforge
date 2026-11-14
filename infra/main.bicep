@@ -1,6 +1,8 @@
 param location string = resourceGroup().location
+param appLocation string = 'canadaeast'
 
 var storageName = 'stef${uniqueString(resourceGroup().id)}'
+var functionAppName = 'func-ef-${uniqueString(resourceGroup().id)}'
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageName
@@ -15,4 +17,48 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
+var storageConnection = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+
+resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2023-05-01' = {
+  parent: storage
+  name: 'default'
+}
+
+resource checkinsTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-01' = {
+  parent: tableService
+  name: 'checkins'
+}
+
+resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: 'plan-endpointforge'
+  location: appLocation
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+  }
+}
+
+resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
+  name: functionAppName
+  location: appLocation
+  kind: 'functionapp'
+  properties: {
+    serverFarmId: plan.id
+    httpsOnly: true
+    siteConfig: {
+      powerShellVersion: '7.4'
+      minTlsVersion: '1.2'
+      ftpsState: 'Disabled'
+      appSettings: [
+        { name: 'AzureWebJobsStorage', value: storageConnection }
+        { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING', value: storageConnection }
+        { name: 'WEBSITE_CONTENTSHARE', value: toLower(functionAppName) }
+        { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+        { name: 'FUNCTIONS_WORKER_RUNTIME', value: 'powershell' }
+      ]
+    }
+  }
+}
+
 output storageAccountName string = storageName
+output functionAppName string = functionApp.name
