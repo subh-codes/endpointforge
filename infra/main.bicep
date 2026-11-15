@@ -68,3 +68,15 @@ resource driftTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023
   parent: tableService
   name: 'drift'
 }
+
+resource dashboard 'Microsoft.Web/staticSites@2023-12-01' = {
+  name: 'swa-endpointforge'
+  location: 'eastus2'
+  sku: {
+    name: 'Free'
+    tier: 'Free'
+  }
+  properties: {}
+}
+
+output dashboardHost string = dashboard.properties.defaultHostname
