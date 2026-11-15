@@ -63,3 +63,8 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
 
 output storageAccountName string = storageName
 output functionAppName string = functionApp.name
+
+resource driftTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-01' = {
+  parent: tableService
+  name: 'drift'
+}

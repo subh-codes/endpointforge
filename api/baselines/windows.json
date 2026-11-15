@@ -1,0 +1,13 @@
+{
+  "rules": [
+    { "id": "firewall-domain",  "check": "firewall", "field": "domain",  "type": "equals", "expected": true, "severity": "high", "title": "Firewall on (Domain profile)" },
+    { "id": "firewall-private", "check": "firewall", "field": "private", "type": "equals", "expected": true, "severity": "high", "title": "Firewall on (Private profile)" },
+    { "id": "firewall-public",  "check": "firewall", "field": "public",  "type": "equals", "expected": true, "severity": "high", "title": "Firewall on (Public profile)" },
+    { "id": "disk-encrypted",   "check": "diskEncryption", "field": "protectionStatus", "type": "equals", "expected": "On", "severity": "high", "title": "System drive encrypted" },
+    { "id": "defender-realtime", "check": "defender", "field": "realTimeProtection", "type": "equals", "expected": true, "severity": "high", "title": "Defender real-time protection on" },
+    { "id": "defender-signatures", "check": "defender", "field": "signatureAgeDays", "type": "max", "expected": 3, "severity": "medium", "title": "Defender signatures under 3 days old" },
+    { "id": "reboot-pending", "check": "pendingUpdates", "field": "rebootRequired", "type": "equals", "expected": false, "severity": "medium", "title": "No update reboot pending" },
+    { "id": "admins-limit", "check": "localAdmins", "field": "count", "type": "max", "expected": 2, "severity": "medium", "title": "At most 2 local administrators" },
+    { "id": "screen-lock", "check": "screenLock", "field": "configured", "type": "equals", "expected": true, "severity": "low", "title": "Screen lock timeout configured" }
+  ]
+}
