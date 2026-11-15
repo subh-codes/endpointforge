@@ -1,17 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EndpointForge</title>
-  <style>
-    body { font-family: Segoe UI, Arial, sans-serif; margin: 3rem auto; max-width: 40rem; padding: 0 1rem; color: #1b1b1b; }
-    p { color: #555; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EndpointForge</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --text:#1b1f24; --muted:#5d6672; --line:#e3e6ea; --ok:#1a7f37; --bad:#c62828; --warn:#b26a00; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:#14213d; color:#fff; padding:1.25rem 1.5rem; }
+  header h1 { margin:0; font-size:1.4rem; }
+  header p { margin:.3rem 0 0; color:#c9d1e0; font-size:.9rem; }
+  main { max-width:60rem; margin:1.5rem auto; padding:0 1rem; }
+  #status { color:var(--muted); font-size:.85rem; margin-bottom:1rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:1.25rem; margin-bottom:1.25rem; }
+  .head { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+  h2 { margin:0; font-size:1.15rem; }
+  h3 { margin:1.25rem 0 .5rem; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .muted { color:var(--muted); font-size:.85rem; margin:.2rem 0 0; }
+  .score { font-size:1.8rem; font-weight:600; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
+  ul.rules { list-style:none; margin:0; padding:0; }
+  ul.rules li { display:flex; align-items:center; gap:.75rem; padding:.4rem 0; border-top:1px solid var(--line); font-size:.92rem; }
+  .pill { font-size:.7rem; font-weight:700; width:3rem; }
+  .sev { margin-left:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  th, td { text-align:left; padding:.4rem .5rem .4rem 0; border-top:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+</style>
 </head>
 <body>
+<header>
   <h1>EndpointForge</h1>
-  <p>Endpoint compliance, drift detection and human-approved self-healing.</p>
-  <p>Deployment pipeline is live. Dashboard data is coming next.</p>
+  <p>Endpoint compliance, drift detection and human-approved self-healing. Read-only public view.</p>
+</header>
+<main>
+  <div id="status">Loading...</div>
+  <div id="devices"></div>
+</main>
+<script>
+const API = 'https://func-ef-qpszyaihq64bs.azurewebsites.net';
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function when(iso) { return iso ? new Date(iso).toLocaleString() : 'never'; }
+
+async function getJson(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(path + ' returned ' + r.status);
+  return r.json();
+}
+
+function renderDevice(d) {
+  const card = el('section', 'card');
+  const head = el('div', 'head');
+  const title = el('div');
+  title.appendChild(el('h2', '', d.name));
+  title.appendChild(el('p', 'muted', d.platform + ' | last seen ' + when(d.lastSeenUtc)));
+  const tone = d.score >= 90 ? 'ok' : (d.score >= 70 ? 'warn' : 'bad');
+  head.appendChild(title);
+  head.appendChild(el('div', 'score ' + tone, d.score + '%'));
+  card.appendChild(head);
+
+  card.appendChild(el('h3', '', 'Baseline rules'));
+  const ul = el('ul', 'rules');
+  for (const r of d.rules) {
+    const li = el('li');
+    li.appendChild(el('span', 'pill ' + (r.pass ? 'ok' : 'bad'), r.pass ? 'PASS' : 'FAIL'));
+    li.appendChild(el('span', '', r.title));
+    li.appendChild(el('span', 'muted sev', r.severity));
+    ul.appendChild(li);
+  }
+  card.appendChild(ul);
+
+  card.appendChild(el('h3', '', 'Drift history'));
+  if (!d.drift.length) {
+    card.appendChild(el('p', 'muted', 'No drift recorded.'));
+    return card;
+  }
+  const table = el('table');
+  const hr = el('tr');
+  for (const h of ['When', 'Rule', 'Event', 'Expected', 'Actual']) hr.appendChild(el('th', '', h));
+  table.appendChild(hr);
+  for (const x of d.drift) {
+    const tr = el('tr');
+    tr.appendChild(el('td', '', when(x.at)));
+    tr.appendChild(el('td', '', x.title));
+    tr.appendChild(el('td', x.event === 'resolved' ? 'ok' : 'bad', x.event));
+    tr.appendChild(el('td', '', x.expected || ''));
+    tr.appendChild(el('td', '', x.actual || ''));
+    table.appendChild(tr);
+  }
+  card.appendChild(table);
+  return card;
+}
+
+async function load() {
+  const box = document.getElementById('devices');
+  const status = document.getElementById('status');
+  try {
+    const list = await getJson('/api/devices');
+    const cards = [];
+    for (const d of list.devices) {
+      cards.push(renderDevice(await getJson('/api/device?name=' + encodeURIComponent(d.name))));
+    }
+    box.replaceChildren(...cards);
+    status.textContent = cards.length
+      ? cards.length + ' device(s) | updated ' + new Date().toLocaleTimeString()
+      : 'No devices have checked in yet.';
+  } catch (e) {
+    status.textContent = 'Could not load data: ' + e.message;
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
 </body>
 </html>

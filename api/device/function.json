@@ -1,0 +1,8 @@
+{
+  "bindings": [
+    { "authLevel": "anonymous", "type": "httpTrigger", "direction": "in", "name": "Request", "methods": ["get"] },
+    { "type": "http", "direction": "out", "name": "Response" },
+    { "type": "table", "direction": "in", "name": "Latest", "tableName": "checkins", "partitionKey": "{Query.name}", "take": 1, "connection": "AzureWebJobsStorage" },
+    { "type": "table", "direction": "in", "name": "DriftRows", "tableName": "drift", "partitionKey": "{Query.name}", "take": 25, "connection": "AzureWebJobsStorage" }
+  ]
+}

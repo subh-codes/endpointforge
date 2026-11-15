@@ -3,7 +3,9 @@
     { "authLevel": "function", "type": "httpTrigger", "direction": "in", "name": "Request", "methods": ["post"] },
     { "type": "http", "direction": "out", "name": "Response" },
     { "type": "table", "direction": "in", "name": "PreviousCheckins", "tableName": "checkins", "partitionKey": "{deviceName}", "take": 1, "connection": "AzureWebJobsStorage" },
+    { "type": "table", "direction": "in", "name": "DeviceList", "tableName": "devices", "partitionKey": "device", "take": 200, "connection": "AzureWebJobsStorage" },
     { "type": "table", "direction": "out", "name": "CheckinTable", "tableName": "checkins", "connection": "AzureWebJobsStorage" },
-    { "type": "table", "direction": "out", "name": "DriftTable", "tableName": "drift", "connection": "AzureWebJobsStorage" }
+    { "type": "table", "direction": "out", "name": "DriftTable", "tableName": "drift", "connection": "AzureWebJobsStorage" },
+    { "type": "table", "direction": "out", "name": "DevicesTable", "tableName": "devices", "connection": "AzureWebJobsStorage" }
   ]
 }

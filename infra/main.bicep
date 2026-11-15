@@ -49,6 +49,11 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       powerShellVersion: '7.6'
       minTlsVersion: '1.2'
       ftpsState: 'Disabled'
+      cors: {
+        allowedOrigins: [
+          'https://${dashboard.properties.defaultHostname}'
+        ]
+      }
       appSettings: [
         { name: 'AzureWebJobsStorage', value: storageConnection }
         { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING', value: storageConnection }
@@ -80,3 +85,8 @@ resource dashboard 'Microsoft.Web/staticSites@2023-12-01' = {
 }
 
 output dashboardHost string = dashboard.properties.defaultHostname
+
+resource devicesTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-01' = {
+  parent: tableService
+  name: 'devices'
+}

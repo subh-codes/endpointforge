@@ -1,5 +1,5 @@
 using namespace System.Net
-param($Request, $TriggerMetadata, $PreviousCheckins)
+param($Request, $TriggerMetadata, $PreviousCheckins, $DeviceList)
 
 function Send-Reply($Status, $Body) {
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{ StatusCode = $Status; Body = $Body })
@@ -8,6 +8,11 @@ function Send-Reply($Status, $Body) {
 $body = $Request.Body
 if (-not $body -or -not $body.deviceName -or -not $body.checks) {
     Send-Reply ([HttpStatusCode]::BadRequest) 'deviceName and checks are required'
+    return
+}
+# Device names become storage keys, so only plain characters are accepted.
+if ("$($body.deviceName)" -notmatch '^[A-Za-z0-9._ -]{1,63}$') {
+    Send-Reply ([HttpStatusCode]::BadRequest) 'invalid deviceName'
     return
 }
 # Only known platforms, so the value can never be used to read other files.
@@ -60,6 +65,16 @@ $now = (Get-Date).ToUniversalTime()
 # Inverted timestamp, so the newest row for a device always sorts first.
 $rowKey = '{0:D19}' -f ([DateTime]::MaxValue.Ticks - $now.Ticks)
 $device = "$($body.deviceName)"
+
+# Register the device the first time it is seen.
+if ($DeviceList -is [string]) { $DeviceList = $DeviceList | ConvertFrom-Json }
+$known = @(@($DeviceList) | Where-Object { $_ } | ForEach-Object { $_.RowKey })
+if ($device -notin $known) {
+    Push-OutputBinding -Name DevicesTable -Value @{
+        PartitionKey = 'device'; RowKey = $device
+        platform = "$($body.platform)"; firstSeenUtc = $now.ToString('o')
+    }
+}
 
 # Record one drift event per rule that changed state.
 $events = @()
