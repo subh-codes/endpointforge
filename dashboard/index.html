@@ -3,121 +3,543 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EndpointForge</title>
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="EndpointForge: endpoint compliance, drift detection and human-approved self-healing. Read-only public demo.">
+<title>EndpointForge | Endpoint compliance dashboard</title>
 <style>
-  :root { --bg:#f4f5f7; --card:#fff; --text:#1b1f24; --muted:#5d6672; --line:#e3e6ea; --ok:#1a7f37; --bad:#c62828; --warn:#b26a00; }
+  :root {
+    --bg:#f3f5f8; --surface:#ffffff; --surface2:#f7f8fa; --text:#17202b; --muted:#566170;
+    --line:#dde2e8; --brand:#0f1d36; --brand-muted:#c3cde0; --accent:#1f5fbf;
+    --ok:#17713a; --warn:#8a5300; --bad:#b3261e; --shadow:0 1px 2px rgba(16,24,40,.06);
+  }
+  [data-theme="dark"] {
+    --bg:#0e131a; --surface:#161d27; --surface2:#1b2430; --text:#e6ebf2; --muted:#a3adba;
+    --line:#2a3441; --brand:#0a1220; --brand-muted:#aab6cb; --accent:#7fb0ff;
+    --ok:#4cc27a; --warn:#e0a43a; --bad:#ff7b72; --shadow:none;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:var(--bg); color:var(--text); }
-  header { background:#14213d; color:#fff; padding:1.25rem 1.5rem; }
-  header h1 { margin:0; font-size:1.4rem; }
-  header p { margin:.3rem 0 0; color:#c9d1e0; font-size:.9rem; }
-  main { max-width:60rem; margin:1.5rem auto; padding:0 1rem; }
-  #status { color:var(--muted); font-size:.85rem; margin-bottom:1rem; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:1.25rem; margin-bottom:1.25rem; }
-  .head { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
-  h2 { margin:0; font-size:1.15rem; }
-  h3 { margin:1.25rem 0 .5rem; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
-  .muted { color:var(--muted); font-size:.85rem; margin:.2rem 0 0; }
-  .score { font-size:1.8rem; font-weight:600; }
-  .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); }
-  ul.rules { list-style:none; margin:0; padding:0; }
-  ul.rules li { display:flex; align-items:center; gap:.75rem; padding:.4rem 0; border-top:1px solid var(--line); font-size:.92rem; }
-  .pill { font-size:.7rem; font-weight:700; width:3rem; }
-  .sev { margin-left:auto; }
-  table { width:100%; border-collapse:collapse; font-size:.88rem; }
-  th, td { text-align:left; padding:.4rem .5rem .4rem 0; border-top:1px solid var(--line); }
-  th { color:var(--muted); font-weight:600; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif; }
+  h1, h2, h3, p { margin:0; }
+  a { color:var(--accent); }
+  button { font:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+
+  header.top { background:var(--brand); color:#fff; padding:1rem 1.5rem; }
+  .top-in { max-width:1400px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:1rem; }
+  .brand { display:flex; align-items:center; gap:.75rem; margin-right:auto; }
+  .brand h1 { font-size:1.3rem; font-weight:600; }
+  .brand p { color:var(--brand-muted); font-size:.85rem; }
+  .badge { border:1px solid rgba(255,255,255,.4); border-radius:999px; padding:.15rem .7rem; font-size:.75rem; white-space:nowrap; }
+  .top-actions { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+  .btn-top { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:6px; padding:.35rem .8rem; font-size:.85rem; }
+  .btn-top:hover { background:rgba(255,255,255,.12); }
+  .btn-top:disabled { opacity:.55; cursor:default; }
+  #status { color:var(--brand-muted); font-size:.82rem; min-width:9rem; }
+
+  main { max-width:1400px; margin:0 auto; padding:1.25rem 1.5rem 2rem; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); gap:.9rem; margin-bottom:1.25rem; }
+  .kpi { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:.9rem 1rem; box-shadow:var(--shadow); }
+  .kpi .label { color:var(--muted); font-size:.74rem; text-transform:uppercase; letter-spacing:.05em; }
+  .kpi .value { font-size:1.7rem; font-weight:600; line-height:1.25; }
+  .kpi .sub { color:var(--muted); font-size:.8rem; }
+
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:1.25rem; margin-bottom:1.25rem; box-shadow:var(--shadow); }
+  .dev-head { display:flex; align-items:center; gap:1rem; padding-bottom:1rem; border-bottom:1px solid var(--line); }
+  .dev-id { display:flex; align-items:center; gap:.8rem; margin-right:auto; min-width:0; }
+  .dev-icon { display:inline-flex; padding:.55rem; border-radius:8px; background:var(--surface2); border:1px solid var(--line); color:var(--muted); }
+  .dev-head h2 { font-size:1.15rem; font-weight:600; overflow-wrap:anywhere; }
+  .meta { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; color:var(--muted); font-size:.84rem; margin-top:.15rem; }
+  .sep { opacity:.5; }
+  .tag { font-size:.72rem; font-weight:600; border-radius:4px; padding:.05rem .4rem; border:1px solid currentColor; }
+  .t-ok { color:var(--ok); } .t-warn { color:var(--warn); } .t-bad { color:var(--bad); }
+  .ring { flex:none; }
+  .ring-track { fill:none; stroke:var(--line); stroke-width:8; }
+  .ring-arc { fill:none; stroke:currentColor; stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset .9s ease-out; }
+  .ring-text { fill:var(--text); font-size:19px; font-weight:600; }
+
+  .dev-body { display:grid; grid-template-columns:1fr; gap:1.5rem; padding-top:1rem; }
+  @media (min-width:900px) { .dev-body { grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); } }
+  .sec-head { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.5rem; }
+  h3 { font-size:.76rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .seg button { background:var(--surface); color:var(--muted); border:0; padding:.2rem .65rem; font-size:.78rem; }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background:var(--surface2); color:var(--text); font-weight:600; }
+
+  ul.rules, ul.fixes, ul.timeline { list-style:none; margin:0; padding:0; }
+  ul.rules li { display:flex; align-items:center; gap:.7rem; padding:.45rem 0; border-top:1px solid var(--line); font-size:.92rem; }
+  ul.rules li:first-child { border-top:0; }
+  .chip { display:inline-flex; align-items:center; gap:.25rem; flex:none; min-width:3.9rem; font-size:.72rem; font-weight:700; letter-spacing:.03em; padding:.15rem .45rem; border-radius:4px; }
+  .chip.t-ok { background:color-mix(in srgb,var(--ok) 13%,transparent); }
+  .chip.t-bad { background:color-mix(in srgb,var(--bad) 13%,transparent); }
+  .grow { flex:1; min-width:0; }
+  .sev { flex:none; font-size:.72rem; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:.05rem .5rem; text-transform:capitalize; }
+  .sev-high { color:var(--text); font-weight:600; }
+  .note { color:var(--muted); font-size:.86rem; }
+
+  .block { margin-top:1.4rem; }
+  ul.fixes li { display:flex; align-items:center; gap:.75rem; padding:.6rem .75rem; margin-top:.5rem; background:var(--surface2); border:1px dashed var(--line); border-radius:6px; }
+  ul.fixes .t { font-size:.92rem; }
+  ul.fixes .s { color:var(--muted); font-size:.8rem; }
+  .btn-fix { flex:none; background:var(--surface); color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:.3rem .7rem; font-size:.8rem; }
+  .btn-fix:disabled { cursor:not-allowed; opacity:.75; }
+
+  ul.timeline { border-left:2px solid var(--line); margin-left:6px; }
+  ul.timeline li { position:relative; padding:0 0 1.1rem 1.1rem; --dot:var(--muted); }
+  ul.timeline li:last-child { padding-bottom:0; }
+  ul.timeline li::before { content:""; position:absolute; left:-7px; top:.3rem; width:12px; height:12px; border-radius:50%; background:var(--surface); border:3px solid var(--dot); box-sizing:border-box; }
+  ul.timeline li.ev-opened { --dot:var(--bad); }
+  ul.timeline li.ev-resolved { --dot:var(--ok); }
+  .ev-top { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
+  .ev-kind { font-size:.74rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
+  .ev-time { color:var(--muted); font-size:.8rem; }
+  .ev-title { font-size:.94rem; }
+  .ev-detail { color:var(--muted); font-size:.83rem; }
+
+  .state { text-align:center; padding:2.5rem 1rem; }
+  .state h2 { font-size:1.1rem; margin-bottom:.4rem; }
+  .btn { background:var(--accent); color:var(--surface); border:0; border-radius:6px; padding:.45rem 1.1rem; margin-top:1rem; font-weight:600; }
+  .sk { background:var(--line); border-radius:6px; animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.45; } }
+
+  footer { max-width:1400px; margin:0 auto; padding:0 1.5rem 2rem; color:var(--muted); font-size:.84rem; display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; justify-content:space-between; }
+  @media (max-width:700px) {
+    header.top, main { padding-left:1rem; padding-right:1rem; }
+    footer { padding:0 1rem 2rem; }
+    .dev-head { flex-wrap:wrap; }
+  }
+  @media (prefers-reduced-motion:reduce) { .sk { animation:none; } .ring-arc { transition:none; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>EndpointForge</h1>
-  <p>Endpoint compliance, drift detection and human-approved self-healing. Read-only public view.</p>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true" focusable="false">
+        <path d="M16 3l11 4v8c0 7-4.6 11.8-11 14C9.6 26.800 5 22 5 15V7z" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M11 16l3.500 3.500L21.500 12" fill="none" stroke="#ffffff" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>EndpointForge</h1>
+        <p>Endpoint compliance, drift detection and human-approved self-healing</p>
+      </div>
+    </div>
+    <span class="badge">Read-only public demo</span>
+    <div class="top-actions">
+      <span id="status" role="status" aria-live="polite">Loading...</span>
+      <button class="btn-top" id="refresh" type="button">Refresh</button>
+      <button class="btn-top" id="theme" type="button" aria-pressed="false">Dark theme</button>
+    </div>
+  </div>
 </header>
-<main>
-  <div id="status">Loading...</div>
+
+<main id="main" aria-busy="true">
+  <section class="kpis" id="kpis" aria-label="Fleet summary"></section>
   <div id="devices"></div>
+  <noscript><div class="card state"><h2>JavaScript is required</h2><p class="note">This dashboard loads live data from the EndpointForge API.</p></div></noscript>
 </main>
+
+<footer>
+  <span>How it works: Agent -&gt; Azure Functions -&gt; Table Storage -&gt; Static Web App</span>
+  <span>Built by Subhnetar Singh |
+    <a href="https://github.com/subh-codes/endpointforge" rel="noopener">GitHub</a> |
+    <a href="https://www.linkedin.com/in/subh-yyc" rel="noopener">LinkedIn</a>
+  </span>
+</footer>
+
 <script>
-const API = 'https://func-ef-qpszyaihq64bs.azurewebsites.net';
+(function () {
+  'use strict';
 
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined && text !== null) e.textContent = text;
-  return e;
-}
-function when(iso) { return iso ? new Date(iso).toLocaleString() : 'never'; }
+  const API = 'https://func-ef-qpszyaihq64bs.azurewebsites.net';
+  const REFRESH_MS = 60000;      // auto-refresh interval
+  const OFFLINE_MIN = 60;        // minutes without a check-in before a device shows Offline
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const ICONS = {
+    check: 'M3 8.5l3.2 3.2L13 5',
+    cross: 'M4 4l8 8M12 4l-8 8',
+    device: 'M2 3h12v8H2zM6 14h4M8 11v3'
+  };
 
-async function getJson(path) {
-  const r = await fetch(API + path);
-  if (!r.ok) throw new Error(path + ' returned ' + r.status);
-  return r.json();
-}
+  const app = { controller: null, loaded: false, filters: {} };
+  const main = document.getElementById('main');
+  const kpiBox = document.getElementById('kpis');
+  const deviceBox = document.getElementById('devices');
+  const statusEl = document.getElementById('status');
+  const refreshBtn = document.getElementById('refresh');
+  const themeBtn = document.getElementById('theme');
 
-function renderDevice(d) {
-  const card = el('section', 'card');
-  const head = el('div', 'head');
-  const title = el('div');
-  title.appendChild(el('h2', '', d.name));
-  title.appendChild(el('p', 'muted', d.platform + ' | last seen ' + when(d.lastSeenUtc)));
-  const tone = d.score >= 90 ? 'ok' : (d.score >= 70 ? 'warn' : 'bad');
-  head.appendChild(title);
-  head.appendChild(el('div', 'score ' + tone, d.score + '%'));
-  card.appendChild(head);
-
-  card.appendChild(el('h3', '', 'Baseline rules'));
-  const ul = el('ul', 'rules');
-  for (const r of d.rules) {
-    const li = el('li');
-    li.appendChild(el('span', 'pill ' + (r.pass ? 'ok' : 'bad'), r.pass ? 'PASS' : 'FAIL'));
-    li.appendChild(el('span', '', r.title));
-    li.appendChild(el('span', 'muted sev', r.severity));
-    ul.appendChild(li);
+  /* ---------- small helpers (all DOM is built with textContent, never markup strings) ---------- */
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = String(text);
+    return e;
   }
-  card.appendChild(ul);
+  function svgEl(tag, attrs) {
+    const n = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  function icon(kind, size) {
+    const s = svgEl('svg', { viewBox: '0 0 16 16', width: size || 13, height: size || 13, 'aria-hidden': 'true', focusable: 'false' });
+    s.appendChild(svgEl('path', { d: ICONS[kind], fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    return s;
+  }
+  function setStatus(text) { statusEl.textContent = text; }
+  function clamp(n) { n = Number(n); return isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0; }
+  function tone(score) { return score >= 90 ? 't-ok' : (score >= 70 ? 't-warn' : 't-bad'); }
+  function platformName(p) { return p === 'windows' ? 'Windows' : (p === 'macos' ? 'macOS' : 'Unknown platform'); }
+  function parseDate(iso) {
+    if (!iso) return null;
+    // Trim fractional seconds to 3 digits so every browser parses the value.
+    const d = new Date(String(iso).replace(/(\.\d{3})\d+/, '$1'));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function rel(d) {
+    const s = Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
+    if (s < 45) return 'just now';
+    if (s < 3600) { const m = Math.max(1, Math.round(s / 60)); return m + (m === 1 ? ' minute ago' : ' minutes ago'); }
+    if (s < 86400) { const h = Math.round(s / 3600); return h + (h === 1 ? ' hour ago' : ' hours ago'); }
+    const days = Math.round(s / 86400); return days + (days === 1 ? ' day ago' : ' days ago');
+  }
+  function dur(ms) {
+    const s = Math.max(0, Math.round(ms / 1000));
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60);
+    if (m < 60) return m + 'm ' + (s % 60) + 's';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ' + (m % 60) + 'm';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+  }
+  function sevBadge(sev) { return el('span', 'sev' + (sev === 'high' ? ' sev-high' : ''), sev || 'n/a'); }
 
-  card.appendChild(el('h3', '', 'Drift history'));
-  if (!d.drift.length) {
-    card.appendChild(el('p', 'muted', 'No drift recorded.'));
+  async function getJson(path, signal) {
+    const r = await fetch(API + path, { signal: signal, cache: 'no-store' });
+    if (!r.ok) throw new Error('Request failed with status ' + r.status);
+    return r.json();
+  }
+
+  /* ---------- theme ---------- */
+  function savedTheme() { try { return localStorage.getItem('ef-theme'); } catch (e) { return null; } }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? 'Light theme' : 'Dark theme';
+    themeBtn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+  }
+  const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  applyTheme(savedTheme() || (media && media.matches ? 'dark' : 'light'));
+  if (media && media.addEventListener) {
+    media.addEventListener('change', function (e) { if (!savedTheme()) applyTheme(e.matches ? 'dark' : 'light'); });
+  }
+  themeBtn.addEventListener('click', function () {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('ef-theme', next); } catch (e) { /* storage unavailable: theme lasts for this visit */ }
+  });
+
+  /* ---------- fleet summary ---------- */
+  function kpi(label, value, sub, toneCls) {
+    const t = el('div', 'kpi');
+    t.appendChild(el('div', 'label', label));
+    t.appendChild(el('div', 'value' + (toneCls ? ' ' + toneCls : ''), value));
+    t.appendChild(el('div', 'sub', sub));
+    return t;
+  }
+  function renderKpis(total, list) {
+    let sum = 0, open = 0, high = 0, compliant = 0;
+    list.forEach(function (d) {
+      const failing = (d.rules || []).filter(function (r) { return !r.pass; });
+      sum += clamp(d.score);
+      open += failing.length;
+      high += failing.filter(function (r) { return r.severity === 'high'; }).length;
+      if ((d.rules || []).length && !failing.length) compliant++;
+    });
+    const avg = list.length ? Math.round(sum / list.length) : null;
+    kpiBox.replaceChildren(
+      kpi('Devices', total, 'reporting to EndpointForge'),
+      kpi('Average score', avg === null ? '-' : avg + '%', 'across all devices', avg === null ? '' : tone(avg)),
+      kpi('Fully compliant', compliant + ' of ' + total, 'every baseline rule passing', compliant === total && total ? 't-ok' : ''),
+      kpi('Open findings', open, 'failing rules right now', open ? 't-warn' : 't-ok'),
+      kpi('High severity', high, 'open high-severity findings', high ? 't-bad' : 't-ok')
+    );
+  }
+
+  /* ---------- device card pieces ---------- */
+  function scoreRing(score, animate) {
+    const r = 34, c = 2 * Math.PI * r, target = c * (1 - score / 100);
+    const wrap = el('div', 'ring ' + tone(score));
+    const s = svgEl('svg', { viewBox: '0 0 84 84', width: 84, height: 84, role: 'img', 'aria-label': 'Compliance score ' + score + ' percent' });
+    s.appendChild(svgEl('circle', { cx: 42, cy: 42, r: r, 'class': 'ring-track' }));
+    const arc = svgEl('circle', { cx: 42, cy: 42, r: r, 'class': 'ring-arc', transform: 'rotate(-90 42 42)' });
+    arc.style.strokeDasharray = c.toFixed(2);
+    arc.style.strokeDashoffset = (animate ? c : target).toFixed(2);
+    s.appendChild(arc);
+    const txt = svgEl('text', { x: 42, y: 48, 'text-anchor': 'middle', 'class': 'ring-text' });
+    txt.textContent = score + '%';
+    s.appendChild(txt);
+    wrap.appendChild(s);
+    if (animate) {
+      requestAnimationFrame(function () { requestAnimationFrame(function () { arc.style.strokeDashoffset = target.toFixed(2); }); });
+    }
+    return wrap;
+  }
+
+  function fillRules(list, rules, mode) {
+    const sorted = rules.slice().sort(function (a, b) { return (a.pass ? 1 : 0) - (b.pass ? 1 : 0); });
+    const shown = mode === 'fail' ? sorted.filter(function (r) { return !r.pass; }) : sorted;
+    const items = shown.map(function (r) {
+      const li = el('li');
+      const chip = el('span', 'chip ' + (r.pass ? 't-ok' : 't-bad'));
+      chip.appendChild(icon(r.pass ? 'check' : 'cross'));
+      chip.appendChild(el('span', '', r.pass ? 'PASS' : 'FAIL'));
+      li.appendChild(chip);
+      li.appendChild(el('span', 'grow', r.title));
+      li.appendChild(sevBadge(r.severity));
+      return li;
+    });
+    if (!items.length) {
+      const li = el('li');
+      li.appendChild(el('span', 'note', mode === 'fail' ? 'No failing rules. This device meets its baseline.' : 'No baseline rules reported.'));
+      items.push(li);
+    }
+    list.replaceChildren.apply(list, items);
+  }
+
+  function rulesBlock(d, rules) {
+    const box = el('div');
+    const head = el('div', 'sec-head');
+    head.appendChild(el('h3', '', 'Baseline rules'));
+    const seg = el('div', 'seg');
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'Filter rules for ' + d.name);
+    const list = el('ul', 'rules');
+    const buttons = [['all', 'All'], ['fail', 'Failing only']].map(function (pair) {
+      const b = el('button', '', pair[1]);
+      b.type = 'button';
+      b.addEventListener('click', function () { app.filters[d.name] = pair[0]; sync(); });
+      seg.appendChild(b);
+      return { mode: pair[0], node: b };
+    });
+    function sync() {
+      const mode = app.filters[d.name] || 'all';
+      buttons.forEach(function (x) { x.node.setAttribute('aria-pressed', x.mode === mode ? 'true' : 'false'); });
+      fillRules(list, rules, mode);
+    }
+    head.appendChild(seg);
+    box.appendChild(head);
+    box.appendChild(list);
+    sync();
+    return box;
+  }
+
+  function remediationBlock(failing) {
+    const box = el('div', 'block');
+    box.appendChild(el('h3', '', 'Remediation'));
+    if (!failing.length) {
+      const p = el('p', 'note', 'No open findings. Nothing to remediate.');
+      p.style.marginTop = '.5rem';
+      box.appendChild(p);
+      return box;
+    }
+    const ul = el('ul', 'fixes');
+    failing.forEach(function (r) {
+      const li = el('li');
+      const text = el('div', 'grow');
+      text.appendChild(el('div', 't', r.title));
+      text.appendChild(el('div', 's', 'Human-approved self-healing: coming soon'));
+      const btn = el('button', 'btn-fix', 'Approve fix');
+      btn.type = 'button';
+      btn.disabled = true;
+      btn.title = 'Approvals will require administrator sign-in';
+      li.appendChild(text);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    return box;
+  }
+
+  // Pair each "resolved" event with the "opened" event before it for the same rule.
+  function pairDrift(events) {
+    const items = events.map(function (e) { return { e: e, t: parseDate(e.at), note: '', paired: false }; });
+    const open = {};
+    for (let i = items.length - 1; i >= 0; i--) {          // oldest first
+      const it = items[i];
+      if (it.e.event === 'opened') { open[it.e.ruleId] = it; continue; }
+      const o = open[it.e.ruleId];
+      if (it.e.event === 'resolved' && o) {
+        if (it.t && o.t) { const d = dur(it.t - o.t); it.note = 'Fixed in ' + d; o.note = 'Resolved after ' + d; }
+        o.paired = true;
+        delete open[it.e.ruleId];
+      }
+    }
+    return items;
+  }
+
+  function timelineBlock(drift, failing) {
+    const box = el('div');
+    const head = el('div', 'sec-head');
+    head.appendChild(el('h3', '', 'Drift timeline'));
+    box.appendChild(head);
+    if (!drift.length) { box.appendChild(el('p', 'note', 'No drift recorded for this device.')); return box; }
+    const failingIds = failing.map(function (r) { return r.id; });
+    const ul = el('ul', 'timeline');
+    pairDrift(drift).forEach(function (it) {
+      const e = it.e, opened = e.event === 'opened';
+      const li = el('li', opened ? 'ev-opened' : 'ev-resolved');
+      const top = el('div', 'ev-top');
+      top.appendChild(el('span', 'ev-kind ' + (opened ? 't-bad' : 't-ok'), opened ? 'Drift opened' : 'Resolved'));
+      const time = el('span', 'ev-time', it.t ? it.t.toLocaleString() : 'Unknown time');
+      if (it.t) time.title = rel(it.t);
+      top.appendChild(time);
+      top.appendChild(sevBadge(e.severity));
+      li.appendChild(top);
+      li.appendChild(el('div', 'ev-title', e.title || e.ruleId));
+      const parts = [];
+      if (e.expected !== null && e.expected !== undefined && e.expected !== '') parts.push('Expected ' + e.expected);
+      if (e.actual !== null && e.actual !== undefined && e.actual !== '') parts.push('found ' + e.actual);
+      let note = it.note;
+      if (!note && opened && !it.paired && failingIds.indexOf(e.ruleId) !== -1) note = 'Still open';
+      if (note) parts.push(note);
+      if (parts.length) li.appendChild(el('div', 'ev-detail', parts.join(' | ')));
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    return box;
+  }
+
+  function renderDevice(d, animate) {
+    const rules = Array.isArray(d.rules) ? d.rules : [];
+    const drift = Array.isArray(d.drift) ? d.drift : [];
+    const failing = rules.filter(function (r) { return !r.pass; });
+    const score = clamp(d.score);
+    const seen = parseDate(d.lastSeenUtc);
+    const offline = !seen || (Date.now() - seen.getTime()) > OFFLINE_MIN * 60000;
+
+    const card = el('section', 'card');
+    card.setAttribute('aria-label', 'Device ' + d.name);
+
+    const head = el('div', 'dev-head');
+    const id = el('div', 'dev-id');
+    const ic = el('span', 'dev-icon');
+    ic.appendChild(icon('device', 22));
+    const names = el('div');
+    names.appendChild(el('h2', '', d.name));
+    const meta = el('p', 'meta');
+    meta.appendChild(el('span', '', platformName(d.platform)));
+    meta.appendChild(el('span', 'sep', '|'));
+    const last = el('span', '', seen ? 'Last seen ' + rel(seen) : 'Never seen');
+    if (seen) last.title = seen.toLocaleString();
+    meta.appendChild(last);
+    meta.appendChild(el('span', 'tag ' + (offline ? 't-warn' : 't-ok'), offline ? 'Offline' : 'Online'));
+    meta.appendChild(el('span', 'tag ' + (failing.length ? 't-bad' : 't-ok'),
+      failing.length ? failing.length + (failing.length === 1 ? ' open finding' : ' open findings') : 'Compliant'));
+    names.appendChild(meta);
+    id.appendChild(ic);
+    id.appendChild(names);
+    head.appendChild(id);
+    head.appendChild(scoreRing(score, animate));
+    card.appendChild(head);
+
+    const body = el('div', 'dev-body');
+    const left = el('div');
+    left.appendChild(rulesBlock(d, rules));
+    left.appendChild(remediationBlock(failing));
+    body.appendChild(left);
+    body.appendChild(timelineBlock(drift, failing));
+    card.appendChild(body);
     return card;
   }
-  const table = el('table');
-  const hr = el('tr');
-  for (const h of ['When', 'Rule', 'Event', 'Expected', 'Actual']) hr.appendChild(el('th', '', h));
-  table.appendChild(hr);
-  for (const x of d.drift) {
-    const tr = el('tr');
-    tr.appendChild(el('td', '', when(x.at)));
-    tr.appendChild(el('td', '', x.title));
-    tr.appendChild(el('td', x.event === 'resolved' ? 'ok' : 'bad', x.event));
-    tr.appendChild(el('td', '', x.expected || ''));
-    tr.appendChild(el('td', '', x.actual || ''));
-    table.appendChild(tr);
-  }
-  card.appendChild(table);
-  return card;
-}
 
-async function load() {
-  const box = document.getElementById('devices');
-  const status = document.getElementById('status');
-  try {
-    const list = await getJson('/api/devices');
-    const cards = [];
-    for (const d of list.devices) {
-      cards.push(renderDevice(await getJson('/api/device?name=' + encodeURIComponent(d.name))));
+  /* ---------- page states ---------- */
+  function stateCard(title, text, withRetry) {
+    const c = el('section', 'card state');
+    c.appendChild(el('h2', '', title));
+    c.appendChild(el('p', 'note', text));
+    if (withRetry) {
+      const b = el('button', 'btn', 'Retry');
+      b.type = 'button';
+      b.addEventListener('click', load);
+      c.appendChild(b);
     }
-    box.replaceChildren(...cards);
-    status.textContent = cards.length
-      ? cards.length + ' device(s) | updated ' + new Date().toLocaleTimeString()
-      : 'No devices have checked in yet.';
-  } catch (e) {
-    status.textContent = 'Could not load data: ' + e.message;
+    return c;
   }
-}
-load();
-setInterval(load, 60000);
+  function deviceError(name, err) {
+    const c = el('section', 'card');
+    c.appendChild(el('h2', '', name));
+    const p = el('p', 'note', 'Could not load this device (' + (err && err.message ? err.message : 'unknown error') + '). Other devices are unaffected.');
+    p.style.marginTop = '.4rem';
+    c.appendChild(p);
+    return c;
+  }
+  function showSkeleton() {
+    const tiles = [];
+    for (let i = 0; i < 5; i++) { const t = el('div', 'kpi'); const s = el('div', 'sk'); s.style.height = '3.6rem'; t.appendChild(s); tiles.push(t); }
+    kpiBox.replaceChildren.apply(kpiBox, tiles);
+    const card = el('section', 'card');
+    [['40%', '2.2rem'], ['100%', '9rem'], ['100%', '7rem']].forEach(function (x) {
+      const s = el('div', 'sk'); s.style.width = x[0]; s.style.height = x[1]; s.style.marginBottom = '1rem'; card.appendChild(s);
+    });
+    deviceBox.replaceChildren(card);
+  }
+
+  /* ---------- load and render ---------- */
+  async function load() {
+    if (app.controller) app.controller.abort();          // a refresh cancels any in-flight requests
+    const controller = new AbortController();
+    const signal = controller.signal;
+    app.controller = controller;
+    const first = !app.loaded;
+
+    main.setAttribute('aria-busy', 'true');
+    refreshBtn.disabled = true;
+    if (first) showSkeleton();
+    setStatus(first ? 'Loading devices...' : 'Refreshing...');
+    const slow = setTimeout(function () {
+      if (!signal.aborted) setStatus('Waking up the API. A cold start can take up to 10 seconds...');
+    }, 3000);
+
+    try {
+      const list = await getJson('/api/devices', signal);
+      const names = (list && Array.isArray(list.devices) ? list.devices : [])
+        .map(function (x) { return x && x.name; }).filter(Boolean);
+      const results = await Promise.all(names.map(function (n) {
+        return getJson('/api/device?name=' + encodeURIComponent(n), signal).then(
+          function (data) { return { ok: true, name: n, data: data }; },
+          function (err) { return { ok: false, name: n, err: err }; });
+      }));
+      if (signal.aborted) return;
+
+      renderKpis(names.length, results.filter(function (r) { return r.ok; }).map(function (r) { return r.data; }));
+      if (!names.length) {
+        deviceBox.replaceChildren(stateCard('No devices yet', 'No endpoint has checked in. Cards appear here as soon as an agent reports.', false));
+      } else {
+        const cards = results.map(function (r) { return r.ok ? renderDevice(r.data, first) : deviceError(r.name, r.err); });
+        deviceBox.replaceChildren.apply(deviceBox, cards);
+      }
+      app.loaded = true;
+      setStatus('Updated ' + new Date().toLocaleTimeString());
+    } catch (err) {
+      if (signal.aborted || (err && err.name === 'AbortError')) return;
+      if (app.loaded) {
+        setStatus('Refresh failed. Showing the last loaded data.');
+      } else {
+        kpiBox.replaceChildren();
+        deviceBox.replaceChildren(stateCard('Could not load the dashboard', 'The EndpointForge API did not respond (' + (err && err.message ? err.message : 'network error') + '). It may be starting up.', true));
+        setStatus('Could not load data.');
+      }
+    } finally {
+      clearTimeout(slow);
+      if (app.controller === controller) { main.setAttribute('aria-busy', 'false'); refreshBtn.disabled = false; }
+    }
+  }
+
+  refreshBtn.addEventListener('click', load);
+  setInterval(load, REFRESH_MS);
+  load();
+})();
 </script>
 </body>
 </html>
